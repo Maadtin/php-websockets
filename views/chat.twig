@@ -15,14 +15,14 @@
 
 
         <form @submit.prevent="submitNewEntry" v-if="showIntroWindow" class="show-intro">
-            <input type="text" v-model="newUserName">
+            <input type="text" v-model="newUserName" v-focus>
             <span v-if="loading">Conectando...</span>
         </form>
 
 
         <div v-else class="chat-container">
             <div class="lista-chats-container">
-                <input type="text" v-model="newMessage" placeholder="Nuevo mensaje...">
+                <input @keyup.enter="sendMessage" type="text" v-model="newMessage" placeholder="Nuevo mensaje...">
                 <ul class="lista-chats">
                     <li v-for="chat in chats">
                         <span>[[ chat.sender ]]</span>
@@ -55,9 +55,17 @@
 		 const WEB_SOCKET_URL = 'ws://localhost:5050';
 
 
-		 new Vue({
+		 let chatApp = new Vue({
 			 el: '#chatApp',
+			 directives: {
+				 focus: {
+					 inserted(el) {
+						 el.focus()
+					 }
+				 }
+			 },
 			 data: {
+				 currentUser: null,
 				 conn: null,
 				 showIntroWindow: true,
 				 newUserName: '',
@@ -68,20 +76,37 @@
 			 },
 			 delimiters: ['[[', ']]'],
 			 methods: {
+				 sendMessage() {
+					 this.conn.send(JSON.stringify({
+						 sender: this.currentUser.userName,
+						 message: this.newMessage
+					 }));
+					 this.newMessage = '';
+				 },
 				 onOpen(e) {
 					 this.loading = false;
 					 this.showIntroWindow = false;
-
-					 this.newUserName = '';
-					 this.conn.send(this.newUserName);
+					 const payload = {
+						 userName: this.newUserName,
+						 isEntering: true
+					 };
+					 this.currentUser = payload;
+					 this.conn.send(JSON.stringify(payload));
 				 },
 				 onClose(e) {
+					 console.log(e);
 				 },
 				 onMessage(e) {
-					 console.log(e);
-					 this.users.push(e.message);
+					 let payload = JSON.parse(e.data);
+					 if (payload.isEntering) {
+						 this.users.push(payload.userName);
+						 this.newUserName = '';
+					 } else {
+						 this.chats.push(payload);
+					 }
 				 },
 				 onError(e) {
+					 console.log(e);
 					 this.loading = false;
 				 },
 				 submitNewEntry() {

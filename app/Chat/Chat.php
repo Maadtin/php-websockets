@@ -34,12 +34,16 @@ class Chat implements MessageComponentInterface {
 
 	public function onClose(ConnectionInterface $conn) {
 		// The connection is closed, remove it, as we can no longer send it messages
+//		$conn->close();
 		$this->clients->detach($conn);
 
 		echo "Connection {$conn->resourceId} has disconnected\n";
 	}
 
 	public function onError(ConnectionInterface $conn, \Exception $e) {
+
+		$conn->send($e->getMessage());
+
 		echo "An error has occurred: {$e->getMessage()}\n";
 
 		$conn->close();
