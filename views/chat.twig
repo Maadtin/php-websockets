@@ -1,0 +1,104 @@
+{% extends 'layouts/layout.twig' %}
+
+
+{% block title %}
+    Chat
+{% endblock %}
+
+
+{% block content %}
+
+
+    <div id="chatApp">
+        <h1>Chat</h1>
+        <a href="{{ path_for('home') }}">Volver al perfil</a>
+
+
+        <form @submit.prevent="submitNewEntry" v-if="showIntroWindow" class="show-intro">
+            <input type="text" v-model="newUserName">
+            <span v-if="loading">Conectando...</span>
+        </form>
+
+
+        <div v-else class="chat-container">
+            <div class="lista-chats-container">
+                <input type="text" v-model="newMessage" placeholder="Nuevo mensaje...">
+                <ul class="lista-chats">
+                    <li v-for="chat in chats">
+                        <span>[[ chat.sender ]]</span>
+                        [[ chat.message ]]
+                    </li>
+                </ul>
+            </div>
+            <div class="lista-users">
+                <p>Usuarios en sala de chat ([[ users.length ]])</p>
+                <ul class="lista-users">
+                    <li v-for="user in users">
+                        [[ user ]]
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+    </div>
+
+
+
+{% endblock %}
+
+
+
+{% block scripts %}
+
+    <script>
+
+		 const WEB_SOCKET_URL = 'ws://localhost:5050';
+
+
+		 new Vue({
+			 el: '#chatApp',
+			 data: {
+				 conn: null,
+				 showIntroWindow: true,
+				 newUserName: '',
+				 users: [],
+				 chats: [],
+				 loading: false,
+				 newMessage: ''
+			 },
+			 delimiters: ['[[', ']]'],
+			 methods: {
+				 onOpen(e) {
+					 this.loading = false;
+					 this.showIntroWindow = false;
+
+					 this.newUserName = '';
+					 this.conn.send(this.newUserName);
+				 },
+				 onClose(e) {
+				 },
+				 onMessage(e) {
+					 console.log(e);
+					 this.users.push(e.message);
+				 },
+				 onError(e) {
+					 this.loading = false;
+				 },
+				 submitNewEntry() {
+					 this.loading = true;
+					 if (this.newUserName) {
+						 this.conn = new WebSocket(WEB_SOCKET_URL);
+						 this.conn.onopen = this.onOpen;
+						 this.conn.onclose = this.onClose;
+						 this.conn.onmessage = this.onMessage;
+						 this.conn.onerror = this.onError;
+					 }
+				 }
+			 }
+		 })
+
+
+    </script>
+
+
+{% endblock %}
